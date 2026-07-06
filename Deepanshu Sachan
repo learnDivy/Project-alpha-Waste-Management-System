@@ -1,1 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmartWaste — Lucknow Municipal Smart Waste Management</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --green:#22c55e;--green-dark:#16a34a;--red:#ef4444;--red-dark:#dc2626;
+    --yellow:#f59e0b;--blue:#3b82f6;--blue-dark:#2563eb;--purple:#8b5cf6;
+    --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;
+    --gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;
+    --gray-800:#1f2937;--gray-900:#111827;
+    --shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+    --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);
+  }
+  body{font-family:'Inter',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh}
+  
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--gray-100)}::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px}
 
+  /* ─── AUTH SCREEN ─── */
+  #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f3460 100%);padding:20px}
+  .auth-card{background:#fff;border-radius:24px;padding:48px 40px;width:100%;max-width:480px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5)}
+  .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+  .auth-logo-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .auth-logo-text h1{font-size:22px;font-weight:800;color:var(--gray-900)}
+  .auth-logo-text p{font-size:12px;color:var(--gray-500)}
+  .auth-subtitle{font-size:14px;color:var(--gray-500);margin-bottom:28px;line-height:1.6}
+  .role-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+  .role-card{border:2px solid var(--gray-200);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s}
+  .role-card:hover{border-color:var(--blue);background:#eff6ff}
+  .role-card.selected{border-color:var(--blue);background:#eff6ff;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+  .role-card-icon{font-size:24px;margin-bottom:6px}
+  .role-card-label{font-size:12px;font-weight:600;color:var(--gray-700)}
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px}
+  .form-input{width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:10px;font-size:14px;font-family:inherit;transition:border-color .2s;outline:none}
+  .form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:inherit}
+  .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-dark)}
+  .btn-success{background:var(--green);color:#fff}.btn-success:hover{background:var(--green-dark)}
+  .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:var(--red-dark)}
+  .btn-ghost{background:var(--gray-100);color:var(--gray-700)}.btn-ghost:hover{background:var(--gray-200)}
+  .btn-outline{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}.btn-outline:hover{background:#eff6ff}
+  .btn-sm{padding:6px 12px;font-size:12px}
+  .btn-full{width:100%;margin-top:8px;padding:12px}
+  .demo-creds{background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px;margin-top:16px}
+  .demo-creds p{font-size:12px;font-weight:600;color:#166534;margin-bottom:6px}
+  .demo-creds ul{list-style:none;font-size:12px;color:#15803d;line-height:2}
+  .demo-creds strong{color:#166534}
+  
+  /* ─── APP SHELL ─── */
+  #app{display:none;flex-direction:column;min-height:100vh}
+  
+  /* ─── NAVBAR ─── */
+  .navbar{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1000;box-shadow:var(--shadow)}
+  .navbar-brand{display:flex;align-items:center;gap:10px}
+  .navbar-brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .navbar-brand-text{font-size:16px;font-weight:800;color:var(--gray-900)}
+  .navbar-center{display:flex;align-items:center;gap:4px}
+  .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--gray-600);transition:all .2s;border:none;background:none;font-family:inherit}
+  .nav-tab:hover{background:var(--gray-100);color:var(--gray-800)}
+  .nav-tab.active{background:#eff6ff;color:var(--blue);font-weight:600}
+  .navbar-right{display:flex;align-items:center;gap:12px}
+  .user-badge{display:flex;align-items:center;gap:8px;background:var(--gray-100);padding:6px 12px;border-radius:20px}
+  .user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+  .user-name{font-size:13px;font-weight:600;color:var(--gray-700)}
+  .role-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+  .role-admin{background:#fef3c7;color:#92400e}
+  .role-employee{background:#dbeafe;color:#1e40af}
+  .role-client{background:#d1fae5;color:#065f46}
+
+  /* ─── ALERT BANNER ─── */
+  .alert-banner{background:#fef2f2;border-bottom:2px solid #fecaca;padding:8px 24px;display:none;align-items:center;gap:10px;font-size:13px;color:var(--red-dark)}
+  .alert-banner.show{display:flex}
+
+  /* ─── MAIN ─── */
+  .main-content{flex:1;padding:24px;max-width:1400px;width:100%;margin:0 auto}
+
+  /* ─── STATS CARDS ─── */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+  .stat-card{background:#fff;border-radius:14px;padding:20px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;border-left:4px solid transparent}
+  .stat-card.red{border-color:var(--red)}.stat-card.yellow{border-color:var(--yellow)}
+  .stat-card.green{border-color:var(--green)}.stat-card.blue{border-color:var(--blue)}
+  .stat-card.purple{border-color:var(--purple)}
+  .stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  .stat-icon.red{background:#fef2f2}.stat-icon.yellow{background:#fffbeb}
+  .stat-icon.green{background:#f0fdf4}.stat-icon.blue{background:#eff6ff}.stat-icon.purple{background:#f5f3ff}
+  .stat-value{font-size:28px;font-weight:800;color:var(--gray-900);line-height:1}
+  .stat-label{font-size:12px;color:var(--gray-500);font-weight:500;margin-top:4px}
+
+  /* ─── PANELS ─── */
+  .panel-grid{display:grid;grid-template-columns:1fr 380px;gap:20px}
+  .panel{background:#fff;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .panel-header{padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
+  .panel-title{font-size:15px;font-weight:700;color:var(--gray-800)}
+  .panel-body{padding:16px}
+
+  /* ─── MAP ─── */
+  #map{height:480px;width:100%;border-radius:0}
+  .map-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--gray-600)}
+  .legend-item{display:flex;align-items:center;gap:6px}
+  .legend-dot{width:12px;height:12px;border-radius:50%}
+  .legend-dot.red{background:var(--red)}.legend-dot.yellow{background:var(--yellow)}.legend-dot.green{background:var(--green)}.legend-dot.purple{background:var(--purple)}.legend-dot.blue{background:var(--blue)}
+
+  /* ─── BIN LIST ─── */
+  .bin-list{max-height:400px;overflow-y:auto}
+  .bin-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--gray-50)}
+  .bin-item:hover{background:var(--gray-50)}
+  .bin-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .bin-dot.full{background:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.2)}
+  .bin-dot.moderate{background:var(--yellow)}
+  .bin-dot.low{background:var(--green)}
+  .bin-info{flex:1;min-width:0}
+  .bin-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bin-area{font-size:11px;color:var(--gray-500)}
+  .fill-bar-wrap{width:80px;flex-shrink:0}
+  .fill-bar{height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;margin-bottom:2px}
+  .fill-bar-inner{height:100%;border-radius:3px;transition:width .4s}
+  .fill-bar-inner.full{background:var(--red)}.fill-bar-inner.moderate{background:var(--yellow)}.fill-bar-inner.low{background:var(--green)}
+  .fill-pct{font-size:11px;font-weight:700;text-align:right}
+  .fill-pct.full{color:var(--red)}.fill-pct.moderate{color:var(--yellow)}.fill-pct.low{color:var(--green)}
+
+  /* ─── BADGES ─── */
+  .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .badge-red{background:#fef2f2;color:var(--red-dark)}.badge-yellow{background:#fffbeb;color:#92400e}
+  .badge-green{background:#f0fdf4;color:var(--green-dark)}.badge-blue{background:#eff6ff;color:var(--blue-dark)}
+  .badge-purple{background:#f5f3ff;color:#6d28d9}.badge-gray{background:var(--gray-100);color:var(--gray-600)}
+
+  /* ─── ROUTE PANEL ─── */
+  .route-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100)}
+  .route-step-num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .route-step-info{flex:1}
+  .route-step-name{font-size:13px;font-weight:600}
+  .route-step-meta{font-size:11px;color:var(--gray-500);margin-top:2px}
+  .route-step-action{flex-shrink:0}
+  .check-btn{width:28px;height:28px;border-radius:50%;border:2px solid var(--gray-300);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .check-btn:hover{border-color:var(--green);color:var(--green)}
+  .check-btn.checked{background:var(--green);border-color:var(--green);color:#fff}
+
+  /* ─── COMPLAINT FORM ─── */
+  .complaint-form{display:flex;flex-direction:column;gap:14px}
+  .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .radio-option{border:1.5px solid var(--gray-200);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+  .radio-option:hover{border-color:var(--blue)}
+  .radio-option.selected{border-color:var(--blue);background:#eff6ff}
+  .radio-option input{display:none}
+  .radio-icon{font-size:18px}
+  .radio-label{font-size:12px;font-weight:600;color:var(--gray-700)}
+  textarea.form-input{resize:vertical;min-height:80px}
+  .success-msg{background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px;text-align:center;color:var(--green-dark);font-size:14px;font-weight:600}
+
+  /* ─── TABLES ─── */
+  .data-table{width:100%;border-collapse:collapse;font-size:13px}
+  .data-table th{background:var(--gray-50);padding:10px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-600);border-bottom:2px solid var(--gray-200)}
+  .data-table td{padding:10px 12px;border-bottom:1px solid var(--gray-100);color:var(--gray-700);vertical-align:middle}
+  .data-table tbody tr:hover{background:var(--gray-50)}
+  .data-table-wrap{overflow-x:auto}
+
+  /* ─── TABS INSIDE PANELS ─── */
+  .inner-tabs{display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--gray-100)}
+  .inner-tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;color:var(--gray-600);transition:all .2s;border:none;background:none;font-family:inherit}
+  .inner-tab.active{background:#eff6ff;color:var(--blue)}
+  .tab-panel{display:none;padding:16px}.tab-panel.active{display:block}
+
+  /* ─── RECYCLE SECTION ─── */
+  .recycle-section{background:#fff;border-radius:14px;box-shadow:var(--shadow);padding:32px;margin-top:24px}
+  .recycle-title{font-size:22px;font-weight:800;color:var(--gray-900);margin-bottom:8px}
+  .recycle-subtitle{font-size:14px;color:var(--gray-500);margin-bottom:28px}
+  .waste-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .waste-card{border-radius:14px;padding:24px;color:#fff;position:relative;overflow:hidden}
+  .waste-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.15)}
+  .waste-card.plastic{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+  .waste-card.glass{background:linear-gradient(135deg,#14b8a6,#0d9488)}
+  .waste-card.paper{background:linear-gradient(135deg,#f59e0b,#d97706)}
+  .waste-card.organic{background:linear-gradient(135deg,#22c55e,#16a34a)}
+  .waste-card.ewaste{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+  .waste-card-icon{font-size:32px;margin-bottom:12px}
+  .waste-card-title{font-size:16px;font-weight:800;margin-bottom:10px}
+  .waste-card-tips{list-style:none;font-size:12px;line-height:1.9;opacity:.92}
+  .waste-card-tips li::before{content:'✓ '}
+
+  /* ─── CHECKIN CARD ─── */
+  .checkin-card{background:linear-gradient(135deg,var(--blue),var(--blue-dark));border-radius:14px;padding:24px;color:#fff;margin-bottom:20px}
+  .checkin-card h3{font-size:16px;font-weight:700;margin-bottom:4px}
+  .checkin-card p{font-size:13px;opacity:.85;margin-bottom:16px}
+  .checkin-time{font-size:28px;font-weight:800;margin-bottom:4px}
+  .checkin-meta{font-size:12px;opacity:.8}
+  .progress-bar{height:8px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden;margin-top:16px}
+  .progress-fill{height:100%;background:#fff;border-radius:4px;transition:width .5s}
+  .progress-label{font-size:12px;opacity:.8;margin-top:6px}
+
+  /* ─── MODALS ─── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal{background:#fff;border-radius:20px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 40px rgba(0,0,0,.3)}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .modal-title{font-size:18px;font-weight:800;color:var(--gray-900)}
+  .modal-close{width:32px;height:32px;border:none;background:var(--gray-100);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+
+  /* ─── NOTIFICATIONS ─── */
+  .toast-container{position:fixed;top:80px;right:24px;z-index:3000;display:flex;flex-direction:column;gap:8px;max-width:340px}
+  .toast{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-lg);display:flex;align-items:flex-start;gap:10px;animation:slideIn .3s ease;border-left:4px solid var(--blue)}
+  .toast.error{border-color:var(--red)}.toast.success{border-color:var(--green)}.toast.warning{border-color:var(--yellow)}
+  .toast-icon{font-size:18px;flex-shrink:0}
+  .toast-body{flex:1}
+  .toast-title{font-size:13px;font-weight:700;color:var(--gray-800)}
+  .toast-msg{font-size:12px;color:var(--gray-600);margin-top:2px}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+  /* ─── LOADING ─── */
+  .spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ─── SECTION ─── */
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .section-title{font-size:18px;font-weight:800;color:var(--gray-900)}
+  .section-meta{font-size:13px;color:var(--gray-500)}
+
+  /* ─── PULSE ANIMATION ─── */
+  .pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+  /* ─── SCROLLABLE WRAPPER ─── */
+  .scroll-wrap{max-height:350px;overflow-y:auto}
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state{text-align:center;padding:40px;color:var(--gray-400)}
+  .empty-state-icon{font-size:40px;margin-bottom:12px}
+  .empty-state-text{font-size:14px}
+
+  /* ─── RESPONSIVE ─── */
+  @media(max-width:900px){.panel-grid{grid-template-columns:1fr}.navbar-center{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ AUTH SCREEN ═══════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🗑️</div>
+      <div class="auth-logo-text">
+        <h1>SmartWaste</h1>
+        <p>Lucknow Municipal Corporation</p>
+      </div>
+    </div>
+    <p class="auth-subtitle">IoT-powered waste management system for smarter, cleaner cities. Select your role to continue.</p>
+    
+    <div class="role-cards">
+      <div class="role-card selected" onclick="selectRole('admin')" id="role-admin">
+        <div class="role-card-icon">👨‍💼</div>
+        <div class="role-card-label">Admin</div>
+      </div>
+      <div class="role-card" onclick="selectRole('employee')" id="role-employee">
+        <div class="role-card-icon">👷</div>
+        <div class="role-card-label">Employee</div>
+      </div>
+      <div class="role-card" onclick="selectRole('client')" id="role-client">
+        <div class="role-card-icon">🏘️</div>
+        <div class="role-card-label">Citizen</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="login-email" class="form-input" placeholder="Enter your email" value="admin@smartwaste.in" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" class="form-input" placeholder="Enter password" value="Admin@123" />
+    </div>
+    <button class="btn btn-primary btn-full" onclick="handleLogin()">
+      <span id="login-btn-text">Sign In →</span>
+    </button>
+
+    <div class="demo-creds">
+      <p>🔑 Demo Credentials</p>
+      <ul>
+        <li><strong>Admin:</strong> admin@smartwaste.in / Admin@123</li>
+        <li><strong>Employee:</strong> employee1@smartwaste.in / Emp@123</li>
+        <li><strong>Citizen:</strong> client@smartwaste.in / Client@123</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ TOAST CONTAINER ═══════════════════════════════════════ -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════ MAIN APP ═══════════════════════════════════════ -->
+<div id="app">
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-brand-icon">🗑️</div>
+      <div class="navbar-brand-text">SmartWaste LKO</div>
+    </div>
+    <div class="navbar-center" id="nav-tabs"></div>
+    <div class="navbar-right">
+      <div class="user-badge">
+        <div class="user-avatar" id="user-avatar" style="background:var(--blue)">A</div>
+        <span class="user-name" id="user-name-display">Admin</span>
+        <span class="role-badge" id="user-role-badge">Admin</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner" id="alert-banner">
+    <span>🚨</span>
+    <span id="alert-text">Warning: Multiple bins critically full</span>
+    <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="dismissAlert()">Dismiss</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="main-content"></div>
+</div>
+
+<!-- ═══════════════════════════════════════ BIN INFO MODAL ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="bin-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="bin-modal-title">Bin Details</div>
+      <button class="modal-close" onclick="closeBinModal()">✕</button>
+    </div>
+    <div id="bin-modal-body"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// SYNTHETIC DATA
+// ═══════════════════════════════════════════════════════════════════
+const BINS = [
+  {id:"BIN-001",area:"Market",loc:"Hazratganj Market",lat:26.8467,lng:80.9462,fill:91,cap:100},
+  {id:"BIN-002",area:"Market",loc:"Aminabad Bazaar",lat:26.8389,lng:80.9285,fill:88,cap:100},
+  {id:"BIN-003",area:"Market",loc:"Nakhas Market",lat:26.8412,lng:80.9201,fill:93,cap:100},
+  {id:"BIN-004",area:"Market",loc:"Sadar Bazaar",lat:26.8501,lng:80.9388,fill:86,cap:100},
+  {id:"BIN-005",area:"Market",loc:"Chowk Market",lat:26.8535,lng:80.9121,fill:89,cap:100},
+  {id:"BIN-006",area:"Railway Station",loc:"Charbagh Gate 1",lat:26.8365,lng:80.9228,fill:96,cap:100},
+  {id:"BIN-007",area:"Railway Station",loc:"Charbagh Concourse",lat:26.8372,lng:80.9241,fill:94,cap:100},
+  {id:"BIN-008",area:"Railway Station",loc:"Charbagh Bus Stand",lat:26.8358,lng:80.9215,fill:97,cap:100},
+  {id:"BIN-009",area:"Railway Station",loc:"Charbagh Exit Road",lat:26.8381,lng:80.9259,fill:92,cap:100},
+  {id:"BIN-010",area:"School",loc:"La Martiniere College",lat:26.8558,lng:80.9443,fill:62,cap:100},
+  {id:"BIN-011",area:"School",loc:"CMS Gomti Nagar",lat:26.8621,lng:80.9872,fill:55,cap:100},
+  {id:"BIN-012",area:"School",loc:"St. Francis College",lat:26.8489,lng:80.9321,fill:58,cap:100},
+  {id:"BIN-013",area:"School",loc:"Lucknow Public School",lat:26.8712,lng:81.0021,fill:64,cap:100},
+  {id:"BIN-014",area:"School",loc:"DPS Indiranagar",lat:26.8801,lng:80.9944,fill:51,cap:100},
+  {id:"BIN-015",area:"Residential",loc:"Aliganj Sector A",lat:26.8723,lng:80.9581,fill:48,cap:100},
+  {id:"BIN-016",area:"Residential",loc:"Aliganj Sector C",lat:26.8756,lng:80.9623,fill:55,cap:100},
+  {id:"BIN-017",area:"Residential",loc:"Indira Nagar Block A",lat:26.8821,lng:81.0012,fill:61,cap:100},
+  {id:"BIN-018",area:"Residential",loc:"Gomti Nagar Extension",lat:26.8567,lng:81.0123,fill:45,cap:100},
+  {id:"BIN-019",area:"Residential",loc:"Vikas Nagar Colony",lat:26.8634,lng:80.9732,fill:59,cap:100},
+  {id:"BIN-020",area:"Residential",loc:"Rajajipuram Sector 2",lat:26.8445,lng:80.9018,fill:52,cap:100},
+  {id:"BIN-021",area:"Park",loc:"Ambedkar Memorial Park",lat:26.8589,lng:80.9378,fill:28,cap:100},
+  {id:"BIN-022",area:"Park",loc:"Janeshwar Mishra Park",lat:26.8812,lng:80.9901,fill:32,cap:100},
+  {id:"BIN-023",area:"Park",loc:"Lohia Park",lat:26.8678,lng:80.9524,fill:24,cap:100},
+  {id:"BIN-024",area:"Park",loc:"Kukrail Picnic Spot",lat:26.8934,lng:81.0234,fill:35,cap:100},
+  {id:"BIN-025",area:"Park",loc:"Nawab Wajid Ali Shah Zoo",lat:26.8612,lng:80.9312,fill:21,cap:100}
+];
+
+const EMPLOYEES = [
+  {id:"EMP-001",name:"Ramesh Kumar",email:"employee1@smartwaste.in",zone:"Market & Railway",status:"active",checkin:"09:02 AM"},
+  {id:"EMP-002",name:"Suresh Singh",email:"employee2@smartwaste.in",zone:"Schools & Residential",status:"active",checkin:"08:55 AM"},
+  {id:"EMP-003",name:"Geeta Devi",email:"employee3@smartwaste.in",zone:"Parks",status:"off-duty",checkin:"—"}
+];
+
+const COMPLAINTS_DB = [
+  {id:"CMP-001",type:"bin_full",loc:"Near GPO, Hazratganj",reporter:"Anita Singh",time:"10:32 AM",status:"open",priority:"high"},
+  {id:"CMP-002",type:"illegal_dumping",loc:"Behind Lohia Park",reporter:"Vivek Gupta",time:"09:15 AM",status:"in-review",priority:"urgent"},
+  {id:"CMP-003",type:"bin_damage",loc:"Aliganj Sector C",reporter:"Sunita Rao",time:"08:47 AM",status:"resolved",priority:"medium"},
+  {id:"CMP-004",type:"bin_full",loc:"Charbagh Station Exit",reporter:"Manoj Kumar",time:"11:05 AM",status:"open",priority:"high"}
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════════
+let currentRole = 'admin';
+let currentUser = null;
+let mapInstance = null;
+let mapMarkers = [];
+let routeLayer = null;
+let generatedRoute = null;
+let complaints = [...COMPLAINTS_DB];
+let bins = BINS.map(b => ({...b, status: b.fill>=80?'full':b.fill>=50?'moderate':'low', collected:false}));
+let activeTab = '';
+
+const ROLE_CREDS = {
+  admin:    {email:'admin@smartwaste.in',    password:'Admin@123'},
+  employee: {email:'employee1@smartwaste.in', password:'Emp@123'},
+  client:   {email:'client@smartwaste.in',    password:'Client@123'}
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════
+function selectRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('role-' + role).classList.add('selected');
+  const creds = ROLE_CREDS[role];
+  document.getElementById('login-email').value = creds.email;
+  document.getElementById('login-password').value = creds.password;
+}
+
+function handleLogin() {
+  const email = document.getElementById('login-email').value;
+  const pw = document.getElementById('login-password').value;
+  if (!email || !pw) { showToast('error','Missing Fields','Please enter email and password.'); return; }
+
+  // Simulate auth
+  const btn = document.querySelector('#auth-screen .btn-primary');
+  btn.innerHTML = '<span class="spinner"></span>';
+  setTimeout(() => {
+    let role = 'client', name = 'Citizen';
+    if (email.includes('admin')) { role='admin'; name='Admin User'; }
+    else if (email.includes('employee')) { role='employee'; name='Ramesh Kumar'; }
+    currentUser = { name, email, role };
+    currentRole = role;
+    bootApp();
+    btn.innerHTML = 'Sign In →';
+  }, 900);
+}
+
+function logout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT APP
+// ═══════════════════════════════════════════════════════════════════
+function bootApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+
+  // Set user info in navbar
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  const avt = document.getElementById('user-avatar');
+  avt.textContent = currentUser.name[0];
+  const roleColors = {admin:'#f59e0b', employee:'#3b82f6', client:'#22c55e'};
+  avt.style.background = roleColors[currentRole];
+  const badge = document.getElementById('user-role-badge');
+  badge.textContent = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
+  badge.className = 'role-badge role-' + currentRole;
+
+  buildNavTabs();
+  renderDashboard();
+  startSimulation();
+}
+
+function buildNavTabs() {
+  const tabs = {
+    admin: [
+      {id:'overview', label:'📊 Overview'},
+      {id:'map', label:'🗺️ Live Map'},
+      {id:'routes', label:'🛣️ Routes'},
+      {id:'employees', label:'👷 Employees'},
+      {id:'complaints', label:'📋 Complaints'}
+    ],
+    employee: [
+      {id:'my-route', label:'🗺️ My Route'},
+      {id:'checkin', label:'✅ Check-in'},
+      {id:'tasks', label:'📋 Tasks'}
+    ],
+    client: [
+      {id:'report', label:'📢 Report Issue'},
+      {id:'recycle', label:'♻️ Recycle Guide'},
+      {id:'my-reports', label:'🗂️ My Reports'}
+    ]
+  };
+  const container = document.getElementById('nav-tabs');
+  container.innerHTML = '';
+  const tabList = tabs[currentRole] || [];
+  if (tabList.length > 0) activeTab = tabList[0].id;
+  tabList.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-tab' + (i===0?' active':'');
+    btn.textContent = t.label;
+    btn.dataset.tab = t.id;
+    btn.onclick = () => switchTab(t.id, btn);
+    container.appendChild(btn);
+  });
+}
+
+function switchTab(tabId, btn) {
+  activeTab = tabId;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderDashboard();
+}
+
+function renderDashboard() {
+  if (currentRole === 'admin') renderAdmin(activeTab || 'overview');
+  else if (currentRole === 'employee') renderEmployee(activeTab || 'my-route');
+  else renderClient(activeTab || 'report');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ADMIN DASHBOARDS
+// ═══════════════════════════════════════════════════════════════════
+function renderAdmin(tab) {
+  if (tab === 'overview') renderAdminOverview();
+  else if (tab === 'map') renderAdminMap();
+  else if (tab === 'routes') renderAdminRoutes();
+  else if (tab === 'employees') renderAdminEmployees();
+  else if (tab === 'complaints') renderAdminComplaints();
+}
+
+function renderAdminOverview() {
+  const full = bins.filter(b=>b.fill>=80).length;
+  const moderate = bins.filter(b=>b.fill>=50&&b.fill<80).length;
+  const low = bins.filter(b=>b.fill<50).length;
+  const avg = Math.round(bins.reduce((a,b)=>a+b.fill,0)/bins.length);
+  const open = complaints.filter(c=>c.status==='open').length;
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">📊 System Overview</div>
+      <div class="section-meta">Last updated: ${new Date().toLocaleTimeString()} · <span class="pulse" style="color:var(--green)">● LIVE</span></div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-icon blue">🗑️</div>
+        <div><div class="stat-value">${bins.length}</div><div class="stat-label">Total Bins</div></div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon red">🔴</div>
+        <div><div class="stat-value">${full}</div><div class="stat-label">Full Bins (≥80%)</div></div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon yellow">🟡</div>
+        <div><div class="stat-value">${moderate}</div><div class="stat-label">Moderate (50–79%)</div></div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon green">🟢</div>
+        <div><div class="stat-value">${low}</div><div class="stat-label">Low Bins (&lt;50%)</div></div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon purple">📋</div>
+        <div><div class="stat-value">${open}</div><div class="stat-label">Open Complaints</div></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-icon blue">📈</div>
+        <div><div class="stat-value">${avg}%</div><div class="stat-label">Avg Fill Level</div></div>
+      </div>
+    </div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🗺️ Live Bin Map — Lucknow</div>
+          <div class="map-legend">
+            <div class="legend-item"><div class="legend-dot red"></div>Full ≥80%</div>
+            <div class="legend-item"><div class="legend-dot yellow"></div>Moderate</div>
+            <div class="legend-item"><div class="legend-dot green"></div>Low</div>
+            <div class="legend-item"><div class="legend-dot blue"></div>Route</div>
+          </div>
+        </div>
+        <div id="map"></div>
+        <div class="panel-body" style="padding:12px 16px">
+          <button class="btn btn-primary btn-sm" onclick="generateRoute()">⚡ Generate Optimal Route</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearRoute()" style="margin-left:8px">✕ Clear Route</button>
+          ${generatedRoute ? `<span style="font-size:12px;color:var(--green-dark);margin-left:12px">✅ Route active: ${generatedRoute.bins.length} bins · ${generatedRoute.dist} km</span>` : ''}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">🗑️ Bin Status</div><span class="badge badge-red">${full} URGENT</span></div>
+        <div class="bin-list" id="bin-list-sidebar">${renderBinListHTML()}</div>
+      </div>
+    </div>
+  `;
+  initMap();
+}
+
+function renderBinListHTML() {
+  return bins.map(b => `
+    <div class="bin-item" onclick="openBinModal('${b.id}')">
+      <div class="bin-dot ${b.status}"></div>
+      <div class="bin-info">
+        <div class="bin-name">${b.loc}</div>
+        <div class="bin-area">${b.area} · ${b.id}</div>
+      </div>
+      <div class="fill-bar-wrap">
+        <div class="fill-bar"><div class="fill-bar-inner ${b.status}" style="width:${b.fill}%"></div></div>
+        <div class="fill-pct ${b.status}">${b.fill}%</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAdminMap() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">🗺️ Live Interactive Map</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot red"></div>Full</div>
+          <div class="legend-item"><div class="legend-dot yellow"></div>Moderate</div>
+          <div class="legend-item"><div class="legend-dot green"></div>Low</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="generateRoute()">⚡ Generate Route</button>
+      </div>
+    </div>
+    <div class="panel" style="overflow:hidden">
+      <div id="map" style="height:600px;border-radius:14px"></div>
+    </div>`;
+  setTimeout(initMap, 100);
+}
+
+function renderAdminRoutes() {
+  const route = generatedRoute;
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">🛣️ Route Management</div>
+      <button class="btn btn-primary" onclick="generateRoute()">⚡ Generate Optimal Route</button>
+    </div>
+    ${route ? `
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue"><div class="stat-icon blue">📍</div><div><div class="stat-value">${route.bins.length}</div><div class="stat-label">Bins in Route</div></div></div>
+      <div class="stat-card green"><div class="stat-icon green">📏</div><div><div class="stat-value">${route.dist} km</div><div class="stat-label">Total Distance</div></div></div>
+      <div class="stat-card yellow"><div class="stat-icon yellow">⏱️</div><div><div class="stat-value">~${route.time} min</div><div class="stat-label">Est. Time</div></div></div>
+      <div class="stat-card purple"><div class="stat-icon purple">🤖</div><div><div class="stat-value">TSP</div><div class="stat-label">Algorithm Used</div></div></div>
+    </div>
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">🗺️ Route Map</div><span class="badge badge-green">OPTIMIZED</span></div>
+        <div id="map" style="height:450px"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">📍 Route Steps</div></div>
+        <div class="panel-body" style="max-height:500px;overflow-y:auto">
+          <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--blue-dark)">
+            🏁 <strong>Depot:</strong> LMC Ward Office, Hazratganj
+          </div>
+          ${route.bins.map((b,i) => `
+          <div class="route-step">
+            <div class="route-step-num">${i+1}</div>
+            <div class="route-step-info">
+              <div class="route-step-name">${b.loc}</div>
+              <div class="route-step-meta">${b.area} · Fill: <strong style="color:var(--red)">${b.fill}%</strong></div>
+            </div>
+            <span class="badge badge-red">FULL</span>
+          </div>`).join('')}
+          <div style="background:#f0fdf4;border-radius:10px;padding:10px 14px;margin-top:12px;font-size:13px;color:var(--green-dark)">
+            🏁 <strong>Return to Depot</strong>
+          </div>
+        </div>
+      </div>
+    </div>` : `
+    <div class="panel">
+      <div class="empty-state">
+        <div class="empty-state-icon">🛣️</div>
+        <div class="empty-state-text">No route generated yet.</div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="generateRoute()">⚡ Generate Optimal Route</button>
+      </div>
+    </div>`}
+  `;
+  if (route) setTimeout(initMap, 100);
+}
+
+function renderAdminEmployees() {
+  const today = new Date().toLocaleDateString('en-IN', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">👷 Employee Management</div>
+      <div class="section-meta">${today}</div>
+    </div>
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card green"><div class="stat-icon green">✅</div><div><div class="stat-value">2</div><div class="stat-label">Checked In Today</div></div></div>
+      <div class="stat-card gray"><div class="stat-icon red">😴</div><div><div class="stat-value">1</div><div class="stat-label">Off Duty</div></div></div>
+      <div class="stat-card blue"><div class="stat-icon blue">🗑️</div><div><div class="stat-value">12</div><div class="stat-label">Bins Collected Today</div></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">📋 Check-in Log</div></div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Employee ID</th><th>Name</th><th>Zone</th><th>Check-in</th><th>Status</th><th>Bins Done</th><th>Action</th></tr></thead>
+          <tbody>
+            ${EMPLOYEES.map(e => `<tr>
+              <td>${e.id}</td>
+              <td><strong>${e.name}</strong></td>
+              <td>${e.zone}</td>
+              <td>${e.checkin}</td>
+              <td><span class="badge ${e.status==='active'?'badge-green':'badge-gray'}">${e.status}</span></td>
+              <td>${e.status==='active'?Math.floor(Math.random()*5+3):'—'}</td>
+              <td><button class="btn btn-outline btn-sm" onclick="showToast('info','Coming soon','Employee detail view')">View</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminComplaints() {
+  const getPriorityBadge = p => ({urgent:'badge-red',high:'badge-red',medium:'badge-yellow',low:'badge-gray'})[p]||'badge-gray';
+  const getStatusBadge = s => ({open:'badge-red','in-review':'badge-yellow',resolved:'badge-green',closed:'badge-gray'})[s]||'badge-gray';
+  const typeLabels = {bin_full:'🗑️ Bin Full',illegal_dumping:'⚠️ Illegal Dumping',bin_damage:'🔨 Bin Damage',other:'📝 Other'};
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">📋 Complaint Management</div>
+      <div style="display:flex;gap:10px">
+        <span class="badge badge-red">${complaints.filter(c=>c.status==='open').length} Open</span>
+        <span class="badge badge-yellow">${complaints.filter(c=>c.status==='in-review').length} In Review</span>
+        <span class="badge badge-green">${complaints.filter(c=>c.status==='resolved').length} Resolved</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">All Complaints</div></div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Type</th><th>Location</th><th>Reporter</th><th>Time</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${complaints.map(c => `<tr>
+              <td><strong>${c.id}</strong></td>
+              <td>${typeLabels[c.type]||c.type}</td>
+              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.loc}</td>
+              <td>${c.reporter}</td>
+              <td style="white-space:nowrap">${c.time}</td>
+              <td><span class="badge ${getPriorityBadge(c.priority)}">${c.priority}</span></td>
+              <td><span class="badge ${getStatusBadge(c.status)}">${c.status}</span></td>
+              <td>
+                ${c.status==='open'?`<button class="btn btn-primary btn-sm" onclick="updateComplaint('${c.id}','in-review')">Review</button>`:''}
+                ${c.status==='in-review'?`<button class="btn btn-success btn-sm" onclick="updateComplaint('${c.id}','resolved')">Resolve</button>`:''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function updateComplaint(id, status) {
+  const c = complaints.find(x=>x.id===id);
+  if (c) { c.status = status; renderAdminComplaints(); showToast('success','Updated',`Complaint ${id} → ${status}`); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EMPLOYEE DASHBOARDS
+// ═══════════════════════════════════════════════════════════════════
+let taskBins = null;
+
+function renderEmployee(tab) {
+  if (!taskBins) {
+    // Assign full bins as employee's route
+    taskBins = bins.filter(b=>b.fill>=80).map(b=>({...b, done:false}));
+    sortByNearestNeighbor(taskBins);
+  }
+  if (tab === 'my-route') renderEmployeeRoute();
+  else if (tab === 'checkin') renderEmployeeCheckin();
+  else if (tab === 'tasks') renderEmployeeTasks();
+}
+
+function sortByNearestNeighbor(arr) {
+  if (arr.length < 2) return;
+  const depot = {lat:26.8467,lng:80.9462};
+  const result = [];
+  const rem = [...arr.map((_,i)=>i)];
+  let cur = depot;
+  while (rem.length) {
+    let best = 0, bestDist = Infinity;
+    rem.forEach((ri,i)=>{ const d=haversine(cur.lat,cur.lng,arr[ri].lat,arr[ri].lng); if(d<bestDist){bestDist=d;best=i;} });
+    result.push(rem[best]);
+    cur = arr[rem[best]];
+    rem.splice(best,1);
+  }
+  const sorted = result.map(i=>arr[i]);
+  arr.length = 0;
+  sorted.forEach(x=>arr.push(x));
+}
+
+const checkinTime = new Date();
+
+function renderEmployeeCheckin() {
+  const done = taskBins ? taskBins.filter(b=>b.done).length : 0;
+  const total = taskBins ? taskBins.length : 0;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-title" style="margin-bottom:20px">✅ My Check-in & Status</div>
+    <div class="checkin-card">
+      <h3>Good morning, Ramesh Kumar!</h3>
+      <p>EMP-001 · Zone: Market & Railway</p>
+      <div class="checkin-time">${checkinTime.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div class="checkin-meta">✅ Checked in on ${checkinTime.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-label">${done}/${total} bins collected (${pct}% complete)</div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">📊 Today's Summary</div></div>
+      <div class="panel-body">
+        <div class="stats-grid">
+          <div class="stat-card green"><div class="stat-icon green">✅</div><div><div class="stat-value">${done}</div><div class="stat-label">Bins Collected</div></div></div>
+          <div class="stat-card red"><div class="stat-icon red">⏳</div><div><div class="stat-value">${total-done}</div><div class="stat-label">Bins Remaining</div></div></div>
+          <div class="stat-card blue"><div class="stat-icon blue">📏</div><div><div class="stat-value">${generatedRoute?generatedRoute.dist+' km':'—'}</div><div class="stat-label">Route Distance</div></div></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderEmployeeRoute() {
+  const dist = generatedRoute ? generatedRoute.dist : calcRouteDist(taskBins);
+  const time = Math.round(dist/20*60 + taskBins.length*5);
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">🗺️ My Assigned Route</div>
+      <div style="display:flex;gap:8px">
+        <span class="badge badge-blue">📏 ${dist} km</span>
+        <span class="badge badge-yellow">⏱️ ~${time} min</span>
+      </div>
+    </div>
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Route Map</div><span class="badge badge-green">OPTIMIZED · TSP</span></div>
+        <div id="map" style="height:450px"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">📍 Stops (${taskBins.length})</div></div>
+        <div style="max-height:480px;overflow-y:auto;padding:12px">
+          <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--blue-dark)">
+            🚛 <strong>Start:</strong> LMC Depot, Hazratganj
+          </div>
+          ${taskBins.map((b,i)=>`
+          <div class="route-step">
+            <div class="route-step-num" style="${b.done?'background:var(--green)':''}">${i+1}</div>
+            <div class="route-step-info">
+              <div class="route-step-name" style="${b.done?'text-decoration:line-through;color:var(--gray-400)':''}">${b.loc}</div>
+              <div class="route-step-meta">${b.area} · ${b.fill}% full</div>
+            </div>
+            <button class="check-btn ${b.done?'checked':''}" onclick="markBinDone('${b.id}',this)">✓</button>
+          </div>`).join('')}
+          <div style="background:#f0fdf4;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--green-dark)">
+            🏁 <strong>Return to Depot</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  setTimeout(()=>initMap(true), 100);
+}
+
+function renderEmployeeTasks() {
+  const done = taskBins.filter(b=>b.done).length;
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">📋 Task List</div>
+      <span class="badge badge-green">${done}/${taskBins.length} Done</span>
+    </div>
+    <div class="panel">
+      <div class="panel-body">
+        <div style="background:var(--gray-50);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:14px;font-weight:600">Overall Progress</div>
+          <div style="font-size:14px;font-weight:800;color:var(--blue)">${done}/${taskBins.length} bins</div>
+        </div>
+        <div style="height:8px;background:var(--gray-200);border-radius:4px;margin-bottom:20px;overflow:hidden">
+          <div style="height:100%;background:var(--green);border-radius:4px;width:${done/taskBins.length*100}%;transition:width .5s"></div>
+        </div>
+        ${taskBins.map((b,i)=>`
+        <div class="route-step" style="border:1.5px solid ${b.done?'#bbf7d0':'var(--gray-200)'};border-radius:10px;padding:12px;margin-bottom:8px;background:${b.done?'#f0fdf4':'#fff'}">
+          <div class="route-step-num" style="background:${b.done?'var(--green)':'var(--blue)'}">${i+1}</div>
+          <div class="route-step-info">
+            <div class="route-step-name" style="${b.done?'text-decoration:line-through;color:var(--gray-400)':''}">${b.loc}</div>
+            <div class="route-step-meta">${b.area} · ${b.id} · Fill: ${b.fill}%</div>
+            ${b.done?`<div style="font-size:11px;color:var(--green-dark);margin-top:4px">✅ Collected at ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
+          </div>
+          <button class="check-btn ${b.done?'checked':''}" onclick="markBinDone('${b.id}',this)">✓</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function markBinDone(binId, btn) {
+  const b = taskBins.find(x=>x.id===binId);
+  if (b) {
+    b.done = !b.done;
+    btn.classList.toggle('checked');
+    const bin = bins.find(x=>x.id===binId);
+    if (bin) { bin.fill = 0; bin.status = 'low'; bin.collected = true; }
+    const done = taskBins.filter(x=>x.done).length;
+    showToast(b.done?'success':'info', b.done?'Bin Collected':'Unmarked', `${b.loc} ${b.done?'marked as collected':'unmarked'}`);
+    if (done === taskBins.length) showToast('success','🎉 Route Complete!','All bins collected for today!');
+  }
+}
+
+function calcRouteDist(arr) {
+  if (!arr || arr.length===0) return '0.00';
+  const depot = {lat:26.8467,lng:80.9462};
+  let dist = 0, cur = depot;
+  for (const b of arr) { dist += haversine(cur.lat,cur.lng,b.lat,b.lng); cur=b; }
+  dist += haversine(cur.lat,cur.lng,depot.lat,depot.lng);
+  return dist.toFixed(2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CLIENT DASHBOARDS
+// ═══════════════════════════════════════════════════════════════════
+let myComplaints = [];
+
+function renderClient(tab) {
+  if (tab === 'report') renderClientReport();
+  else if (tab === 'recycle') renderClientRecycle();
+  else if (tab === 'my-reports') renderClientMyReports();
+}
+
+function renderClientReport() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-title" style="margin-bottom:20px">📢 Report an Issue</div>
+    <div style="max-width:600px;margin:0 auto">
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-header"><div class="panel-title">Submit a Report</div></div>
+        <div class="panel-body">
+          <div class="complaint-form">
+            <div>
+              <label style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:8px;display:block">Issue Type</label>
+              <div class="radio-group" id="complaint-type-group">
+                <div class="radio-option selected" onclick="selectComplaintType('bin_full',this)">
+                  <span class="radio-icon">🗑️</span><div><div class="radio-label">Bin Overflow</div></div>
+                </div>
+                <div class="radio-option" onclick="selectComplaintType('illegal_dumping',this)">
+                  <span class="radio-icon">⚠️</span><div><div class="radio-label">Illegal Dumping</div></div>
+                </div>
+                <div class="radio-option" onclick="selectComplaintType('bin_damage',this)">
+                  <span class="radio-icon">🔨</span><div><div class="radio-label">Damaged Bin</div></div>
+                </div>
+                <div class="radio-option" onclick="selectComplaintType('other',this)">
+                  <span class="radio-icon">📝</span><div><div class="radio-label">Other</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Location / Address</label>
+              <input type="text" class="form-input" id="comp-location" placeholder="e.g. Near GPO, Hazratganj, Lucknow" />
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Description</label>
+              <textarea class="form-input" id="comp-desc" placeholder="Describe the issue in detail..."></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Your Name (optional)</label>
+              <input type="text" class="form-input" id="comp-name" placeholder="Anonymous" />
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Contact Number (optional)</label>
+              <input type="text" class="form-input" id="comp-phone" placeholder="+91 98XXXXXXXX" />
+            </div>
+            <button class="btn btn-primary btn-full" onclick="submitComplaint()">📤 Submit Report</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+let selectedComplaintType = 'bin_full';
+function selectComplaintType(type, el) {
+  selectedComplaintType = type;
+  document.querySelectorAll('.radio-option').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function submitComplaint() {
+  const loc = document.getElementById('comp-location').value;
+  const desc = document.getElementById('comp-desc').value;
+  const name = document.getElementById('comp-name').value || 'Anonymous';
+  if (!loc || !desc) { showToast('error','Missing Fields','Please fill in location and description.'); return; }
+
+  const cid = 'CMP-' + (100 + complaints.length + 1);
+  const c = {
+    id: cid, type: selectedComplaintType, loc, reporter: name,
+    time: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+    status:'open', priority: selectedComplaintType==='illegal_dumping'?'high':'medium',
+    desc
+  };
+  complaints.push(c);
+  myComplaints.push(c);
+  showToast('success','Report Submitted!',`Your complaint ${cid} has been filed. Our team will respond soon.`);
+  renderClientReport();
+}
+
+function renderClientMyReports() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-title" style="margin-bottom:20px">🗂️ My Submitted Reports</div>
+    ${myComplaints.length === 0 ? `
+    <div class="panel"><div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-text">No reports submitted yet.</div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="switchTab('report',document.querySelector('[data-tab=report]'))">Submit a Report</button>
+    </div></div>` : `
+    <div class="panel">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Type</th><th>Location</th><th>Time</th><th>Status</th></tr></thead>
+          <tbody>
+            ${myComplaints.map(c=>`<tr>
+              <td><strong>${c.id}</strong></td>
+              <td>${{bin_full:'🗑️ Bin Overflow',illegal_dumping:'⚠️ Illegal Dumping',bin_damage:'🔨 Bin Damage',other:'📝 Other'}[c.type]}</td>
+              <td>${c.loc}</td>
+              <td>${c.time}</td>
+              <td><span class="badge ${{open:'badge-red','in-review':'badge-yellow',resolved:'badge-green'}[c.status]||'badge-gray'}">${c.status}</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`}`;
+}
+
+function renderClientRecycle() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-title" style="margin-bottom:8px">♻️ Recycle & Reuse Guide</div>
+    <div style="font-size:14px;color:var(--gray-500);margin-bottom:24px">Learn how to properly dispose, recycle, and reuse different types of waste for a cleaner Lucknow.</div>
+
+    <div class="waste-cards">
+      <div class="waste-card plastic">
+        <div class="waste-card-icon">🧴</div>
+        <div class="waste-card-title">Plastic Waste</div>
+        <ul class="waste-card-tips">
+          <li>Rinse containers before binning</li>
+          <li>Check resin codes 1–7 on labels</li>
+          <li>Avoid single-use plastics</li>
+          <li>Use cloth bags instead</li>
+          <li>Drop at nearest blue bin</li>
+        </ul>
+      </div>
+      <div class="waste-card glass">
+        <div class="waste-card-icon">🍾</div>
+        <div class="waste-card-title">Glass Waste</div>
+        <ul class="waste-card-tips">
+          <li>Separate by color if possible</li>
+          <li>Do not mix with ceramics</li>
+          <li>Reuse jars as storage</li>
+          <li>Handle broken glass carefully</li>
+          <li>Drop at recycling center</li>
+        </ul>
+      </div>
+      <div class="waste-card paper">
+        <div class="waste-card-icon">📰</div>
+        <div class="waste-card-title">Paper Waste</div>
+        <ul class="waste-card-tips">
+          <li>Keep dry — wet paper can't recycle</li>
+          <li>Remove staples and clips</li>
+          <li>Shred sensitive documents</li>
+          <li>Reuse newspaper for packing</li>
+          <li>Drop at kabadiwala or yellow bin</li>
+        </ul>
+      </div>
+      <div class="waste-card organic">
+        <div class="waste-card-icon">🌿</div>
+        <div class="waste-card-title">Organic Waste</div>
+        <ul class="waste-card-tips">
+          <li>Compost kitchen scraps at home</li>
+          <li>Use green bin for food waste</li>
+          <li>Avoid mixing with dry waste</li>
+          <li>Compost tea/coffee grounds</li>
+          <li>Convert to garden fertilizer</li>
+        </ul>
+      </div>
+      <div class="waste-card ewaste">
+        <div class="waste-card-icon">💻</div>
+        <div class="waste-card-title">E-Waste</div>
+        <ul class="waste-card-tips">
+          <li>Never bin batteries or phones</li>
+          <li>Use e-waste drop-off centers</li>
+          <li>Donate working electronics</li>
+          <li>Remove personal data first</li>
+          <li>Contact Prakriti E-Cycle LKO</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:32px;margin-top:24px;color:#fff;text-align:center">
+      <div style="font-size:28px;margin-bottom:12px">🌍</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px">Together for a Cleaner Lucknow</div>
+      <div style="font-size:14px;opacity:.8;max-width:500px;margin:0 auto;line-height:1.7">
+        <em>"As this is a software prototype, we created a synthetic dataset that mimics data an IoT-based smart bin would generate. In a real deployment, this data would come directly from physical sensors."</em>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:13px;opacity:.7">
+        <span>🗑️ 25 Smart Bins</span>
+        <span>🛣️ AI Route Optimization</span>
+        <span>📡 Simulated IoT</span>
+        <span>👷 3 User Roles</span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════════════════
+function initMap(employeeView=false) {
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+  const el = document.getElementById('map');
+  if (!el) return;
+
+  mapInstance = L.map('map').setView([26.862, 80.967], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 18
+  }).addTo(mapInstance);
+
+  mapMarkers = [];
+  const activeBins = employeeView ? taskBins : bins;
+
+  activeBins.forEach(b => {
+    const color = b.fill>=80?'#ef4444':b.fill>=50?'#f59e0b':'#22c55e';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:32px;height:32px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700">${b.fill>=80?'!':Math.round(b.fill/10)}</div>`,
+      iconSize:[32,32], iconAnchor:[16,16], popupAnchor:[0,-18]
+    });
+    const statusLabel = b.fill>=80?'🔴 FULL':b.fill>=50?'🟡 Moderate':'🟢 Low';
+    const bgColor = b.fill>=80?'#fef2f2':b.fill>=50?'#fffbeb':'#f0fdf4';
+    const marker = L.marker([b.lat,b.lng],{icon})
+      .addTo(mapInstance)
+      .bindPopup(`
+        <div style="min-width:220px;font-family:Inter,sans-serif">
+          <div style="font-weight:800;font-size:14px;margin-bottom:6px">${b.loc}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+            <span style="background:#eff6ff;color:#1e40af;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${b.area}</span>
+            <span style="background:${bgColor};color:${color};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${statusLabel}</span>
+          </div>
+          <div style="background:var(--gray-100,#f3f4f6);border-radius:8px;padding:10px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>Bin ID</span><strong>${b.id}</strong></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>Fill Level</span><strong style="color:${color}">${b.fill}%</strong></div>
+            <div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-bottom:6px">
+              <div style="height:100%;background:${color};width:${b.fill}%;border-radius:3px"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between"><span>Capacity</span><strong>${b.cap}L</strong></div>
+          </div>
+          ${currentRole!=='client'?`<button onclick="collectBin('${b.id}')" style="width:100%;margin-top:8px;padding:6px;background:${color};color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✓ Mark Collected</button>`:''}
+        </div>`);
+    mapMarkers.push({id:b.id, marker});
+  });
+
+  // Depot marker
+  L.marker([26.8467, 80.9462], {
+    icon: L.divIcon({
+      className:'',
+      html:`<div style="width:36px;height:36px;border-radius:8px;background:#7c3aed;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:16px">🏢</div>`,
+      iconSize:[36,36],iconAnchor:[18,18]
+    })
+  }).addTo(mapInstance).bindPopup('<strong>LMC Depot</strong><br>Hazratganj, Lucknow');
+
+  // Draw route if exists
+  if (generatedRoute) drawRouteOnMap();
+}
+
+function drawRouteOnMap() {
+  if (!mapInstance || !generatedRoute) return;
+  if (routeLayer) { mapInstance.removeLayer(routeLayer); routeLayer = null; }
+  const depot = [26.8467, 80.9462];
+  const coords = [depot, ...generatedRoute.bins.map(b=>[b.lat,b.lng]), depot];
+  routeLayer = L.polyline(coords, {color:'#3b82f6',weight:4,opacity:.85,dashArray:'10,6'}).addTo(mapInstance);
+  mapInstance.fitBounds(routeLayer.getBounds(), {padding:[30,30]});
+}
+
+function collectBin(binId) {
+  const b = bins.find(x=>x.id===binId);
+  if (b) {
+    b.fill = 0; b.status = 'low'; b.collected = true;
+    if (taskBins) { const tb = taskBins.find(x=>x.id===binId); if(tb) tb.done=true; }
+    mapInstance?.closePopup();
+    showToast('success','Bin Collected',`${b.loc} has been cleared.`);
+    initMap(currentRole==='employee');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ROUTE GENERATION (Nearest Neighbor TSP)
+// ═══════════════════════════════════════════════════════════════════
+function generateRoute() {
+  const fullBins = bins.filter(b=>b.fill>=80);
+  if (fullBins.length===0) { showToast('info','No Full Bins','All bins are below 80% fill level.'); return; }
+
+  showToast('info','Generating Route...','Running Nearest Neighbor TSP algorithm...');
+
+  setTimeout(() => {
+    const sorted = [...fullBins];
+    sortByNearestNeighbor(sorted);
+    const depot = {lat:26.8467,lng:80.9462};
+    let dist = 0, cur = depot;
+    for (const b of sorted) { dist += haversine(cur.lat,cur.lng,b.lat,b.lng); cur=b; }
+    dist += haversine(cur.lat,cur.lng,depot.lat,depot.lng);
+
+    generatedRoute = {
+      id: 'RT-' + Date.now().toString().slice(-6),
+      bins: sorted,
+      dist: dist.toFixed(2),
+      time: Math.round(dist/20*60 + sorted.length*5),
+      algo: 'Nearest Neighbor TSP'
+    };
+    taskBins = sorted.map(b=>({...b, done:false}));
+
+    showToast('success','Route Generated!',`${sorted.length} bins · ${dist.toFixed(2)} km · ~${generatedRoute.time} min`);
+    renderDashboard();
+    if (mapInstance) drawRouteOnMap();
+  }, 1200);
+}
+
+function clearRoute() {
+  generatedRoute = null;
+  if (routeLayer && mapInstance) { mapInstance.removeLayer(routeLayer); routeLayer = null; }
+  renderDashboard();
+}
+
+function haversine(lat1,lon1,lat2,lon2) {
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BIN MODAL
+// ═══════════════════════════════════════════════════════════════════
+function openBinModal(binId) {
+  const b = bins.find(x=>x.id===binId);
+  if (!b) return;
+  const color = b.fill>=80?'#ef4444':b.fill>=50?'#f59e0b':'#22c55e';
+  document.getElementById('bin-modal-title').textContent = b.loc;
+  document.getElementById('bin-modal-body').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <span class="badge badge-blue">${b.area}</span>
+      <span class="badge ${b.fill>=80?'badge-red':b.fill>=50?'badge-yellow':'badge-green'}">${b.status.toUpperCase()}</span>
+    </div>
+    <div style="background:var(--gray-50);border-radius:10px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span style="color:var(--gray-600)">Bin ID</span><strong>${b.id}</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span style="color:var(--gray-600)">Coordinates</span><span>${b.lat.toFixed(4)}, ${b.lng.toFixed(4)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:13px"><span style="color:var(--gray-600)">Capacity</span><strong>${b.cap}L</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
+        <span style="color:var(--gray-600)">Fill Level</span>
+        <strong style="color:${color};font-size:20px">${b.fill}%</strong>
+      </div>
+      <div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden">
+        <div style="height:100%;background:${color};width:${b.fill}%;border-radius:5px;transition:width .5s"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-success" style="flex:1" onclick="collectBinModal('${b.id}')">✓ Mark Collected</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="closeBinModal()">Close</button>
+    </div>`;
+  document.getElementById('bin-modal').classList.add('open');
+}
+
+function collectBinModal(binId) {
+  collectBin(binId);
+  closeBinModal();
+}
+
+function closeBinModal() {
+  document.getElementById('bin-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════
+function showToast(type, title, msg) {
+  const icons = {success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<div class="toast-icon">${icons[type]||'ℹ️'}</div><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(100%)'; toast.style.transition='all .3s'; setTimeout(()=>toast.remove(),300); }, 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EARLY WARNING SYSTEM — ALERT BANNER
+// ═══════════════════════════════════════════════════════════════════
+function checkAlerts() {
+  const critical = bins.filter(b=>b.fill>=95);
+  const banner = document.getElementById('alert-banner');
+  if (critical.length > 0 && currentRole==='admin') {
+    document.getElementById('alert-text').textContent = 
+      `🚨 ALERT: ${critical.length} bin(s) critically full (≥95%) — ${critical.map(b=>b.loc).join(', ')}`;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function dismissAlert() {
+  document.getElementById('alert-banner').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LIVE SIMULATION — Fill levels slowly increase
+// ═══════════════════════════════════════════════════════════════════
+function startSimulation() {
+  checkAlerts();
+  setInterval(() => {
+    const rates = {'Market':0.4,'Railway Station':0.6,'School':0.2,'Residential':0.25,'Park':0.1};
+    bins.forEach(b => {
+      if (b.collected) return;
+      const rate = rates[b.area] || 0.2;
+      const delta = (Math.random() * rate * 2 - rate * 0.5);
+      b.fill = Math.min(100, Math.max(0, b.fill + delta));
+      b.fill = parseFloat(b.fill.toFixed(1));
+      b.status = b.fill>=80?'full':b.fill>=50?'moderate':'low';
+    });
+    checkAlerts();
+    // Update bin list sidebar if visible
+    const sidebar = document.getElementById('bin-list-sidebar');
+    if (sidebar) sidebar.innerHTML = renderBinListHTML();
+  }, 8000);
+}
+
+// Close modal on overlay click
+document.getElementById('bin-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeBinModal();
+});
+</script>
+</body>
+</html>
